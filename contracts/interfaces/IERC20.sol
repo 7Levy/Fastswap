@@ -19,37 +19,63 @@ interface IERC20 {
     /**
      * @dev Moves `amount` tokens from the caller's account to `recipient`.
      */
-    function transfer(address recipient,uint256 amount)external returns(bool);
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
      * allowed to spend on behalf of `owner` through {transferFrom}. This is
      * zero by default.
      */
-    function allowance(address owner,address spender)external returns(uint256);
+    function allowance(address owner, address spender)
+        external
+        returns (uint256);
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
      */
-    function approve(address spender,uint256 amount)external returns(bool);
-    
+    function approve(address spender, uint256 amount) external returns (bool);
+
     /**
      * @dev Moves `amount` tokens from `sender` to `recipient` using the
      * allowance mechanism. `amount` is then deducted from the caller's
      * allowance.
      */
-    function transferFrom(address sender,address recipient,uint256)external returns(bool);
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256
+    ) external returns (bool);
 
-     /**
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() external view returns (string memory);
+
+    /**
+     * @dev Returns the symbol of the token.
+     */
+    function symbol() external view returns (string memory);
+
+    /**
+     * @dev Returns the decimals places of the token.
+     */
+    function decimals() external view returns (uint8);
+
+    /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
      * another (`to`).
      */
-     event Transfer(address indexed from,address indexed to,uint256 value);
-     
-     /**
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
-     event Approval(address indexed owner,address indexed spender,uint256 value);
-
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
