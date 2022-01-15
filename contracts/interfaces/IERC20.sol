@@ -14,7 +14,7 @@ interface IERC20 {
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
 
     /**
      * @dev Moves `amount` tokens from the caller's account to `recipient`.
@@ -62,7 +62,7 @@ interface IERC20 {
      * @dev Returns the decimals places of the token.
      */
     function decimals() external view returns (uint8);
-
+    
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
      * another (`to`).
