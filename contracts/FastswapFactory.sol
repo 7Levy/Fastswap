@@ -57,4 +57,20 @@ contract FastswapFactory is IFactory {
         allPairs.push(pair);
         emit PairCreated(token0, token1, pair, allPairs.length);
     }
+    /**
+     * @dev 设置接收fee的地址
+     */
+    function setFeeto(adress _feeTo)external{
+        require(msg.sender==feeTosetter,"Fastswap: INVALID");
+        feeTo = _feeTo;
+    }
+    /**
+     * @dev 转移权限
+     */
+    function setFeeToSetter(address _feeToSetter)external{
+        require(msg.sender==feeToSetter,"Fastsawp: IVALID");
+        feeToSetter=_feeToSetter;
+    }
+
+
 }
