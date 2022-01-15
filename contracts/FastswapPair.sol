@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract FastswapPair{
-    
+import "./interfaces/IERC20.sol";
+contract FastswapPair is IERC20{
+
 }
