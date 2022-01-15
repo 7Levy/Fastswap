@@ -71,6 +71,5 @@ contract FastswapFactory is IFactory {
         require(msg.sender==feeToSetter,"Fastsawp: IVALID");
         feeToSetter=_feeToSetter;
     }
-
-
+    
 }
