@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "./interfaces/IFactory.sol";
 import "./FastswapPair.sol";
 
-contract FastswapFactory is IFactory {
+contract FastswapFactory is IFactory{
     address public feeTo; //收fee地址
     address public feeToSetter; //设置收fee地址的地址
     mapping(address => mapping(address => address)) public onepair;//交易对，A=>B=>pairAB
@@ -14,12 +14,12 @@ contract FastswapFactory is IFactory {
     bytes32 public constant PAIR_CREATIONCODE_HASH= keccak256(abi.encodePacked(type(FastswapPair).creationCode));
     
     //事件-创建配对成功
-    event PairCreated(address indexed token0,address indexed token1,address pair,uint);
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
     /**
      * @dev 初始化合约的时候设置feeToSetter地址
      */
-    constructor(address _feeToSetter)public{
+    constructor(address _feeToSetter){
         feeToSetter=_feeToSetter;
     }
 
@@ -43,7 +43,7 @@ contract FastswapFactory is IFactory {
         //判断是否已经存在该交易对
         require(onepair[token0][token1]==address(0),"Fastswap: PARI ALREADY EXISTS");
         
-        bytes bytecode = type(FastswapPair).creationCode;
+        bytes  memory bytecode = type(FastswapPair).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(token0,token1));
 
         //对token0和token1进行排序后，汇编生成可预测的交易对地址
@@ -60,8 +60,8 @@ contract FastswapFactory is IFactory {
     /**
      * @dev 设置接收fee的地址
      */
-    function setFeeto(adress _feeTo)external{
-        require(msg.sender==feeTosetter,"Fastswap: INVALID");
+    function setFeeto(address _feeTo)external{
+        require(msg.sender==feeToSetter,"Fastswap: INVALID");
         feeTo = _feeTo;
     }
     /**
