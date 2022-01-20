@@ -51,16 +51,21 @@ contract FastswapFactory is IFactory{
         assembly{
             pair :=create2(0,add(bytecode,32),mload(bytecode),salt)
         }
+        //初始化FastswapPair合约的交易对token0和token1
         IERC20(pair).initialize(token0,token1);
+        //设置交易对映射
         onepair[token0][token1]=pair;
         onepair[token1][token0]=pair;
+        //存储交易对映射
         allPairs.push(pair);
+        //创建交易对成功后的事件
         emit PairCreated(token0, token1, pair, allPairs.length);
     }
     /**
      * @dev 设置接收fee的地址
      */
     function setFeeto(address _feeTo)external{
+        //判断是否有权限设置接收fee的地址
         require(msg.sender==feeToSetter,"Fastswap: INVALID");
         feeTo = _feeTo;
     }
@@ -68,6 +73,7 @@ contract FastswapFactory is IFactory{
      * @dev 转移权限
      */
     function setFeeToSetter(address _feeToSetter)external{
+        //判断是否可以转移所拥有权限
         require(msg.sender==feeToSetter,"Fastsawp: IVALID");
         feeToSetter=_feeToSetter;
     }

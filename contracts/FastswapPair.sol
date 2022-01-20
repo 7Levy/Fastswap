@@ -120,7 +120,7 @@ contract FastswapPair is IERC20{
         _mint(to,liquidity);
         _update(balance0, balance1, _reserve0, _reserve1);
         if (feeOn) {
-            KLast = uint256(reserve0)*reserve1;
+            KLast = uint256(reserve0)*uint256(reserve1);
         }
         emit Mint(msg.sender, amount0, amount1);
     }
