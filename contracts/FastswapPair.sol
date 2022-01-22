@@ -3,8 +3,10 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IERC20.sol";
 import "./libraries/UQ112x112.sol";
+import "./FastswapToken.sol";
 import "./libraries/Math.sol";
-contract FastswapPair is IERC20{
+import "./interfaces/IFactory.sol";
+contract FastswapPair is IERC20,FastswapToken{
     using UQ112x112 for uint224;
     uint256 public constant MINIMUM_LIQUIDITY=10**3;//最小流动性
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));//获取transfer函数的选择器
@@ -102,7 +104,7 @@ contract FastswapPair is IERC20{
      */
     function _mintFee(uint112 _reserve0,uint112 _reserve1)private returns(bool feeOn){
         //获得feeTo地址
-        address feeTo = IFastswapFactory(factory).feeTo();
+        address feeTo = IFactory(factory).feeTo();
         //如果feeTo地址等于0，关闭铸造费
         feeOn = feeTo != address(0);
         uint256 _kLast=KLast;
@@ -166,7 +168,9 @@ contract FastswapPair is IERC20{
         emit Mint(msg.sender, amount0, amount1);
     }
 
-    
+     /**
+     * @dev 销毁流动性
+     */
     function burn(address to)external lock returns(uint256 amount0,uint256 amount1){
         //获得临时储备量0和1
         (uint112 _reserve0,uint112 _reserve1,)=getReserves();
@@ -176,11 +180,25 @@ contract FastswapPair is IERC20{
         uint256 balance0=IERC20(_token0).balanceOf(address(this));
         //当前合约地址中的token1余额
         uint256 balance1=IERC20(_token1).balanceOf(address(this));
-        //从当前合约
+        //获取当前交易对合约的流动性
         uint256 liquidity=balanceOf[address(this)];
-
+        //获取铸造费开关
         bool feeOn = _mintFee(_reserve0,_reserve1);
-
+        uint256 _totalSupply= totalSupply;
+        amount0 =liquidity*balance0/_totalSupply;
+        amount1 =liquidity*balance1/_totalSupply;
+        require(amount0>0&&amount1>0,"Fastswap: INSUFFICIENT LIQUIDITY BURNED");
+        //销毁当前合约的流动性数量
+        _burn(address(this),liquidity);
+        //使用底层交易方法返还代币token0和token1
+        _safeTransfer(token0, to, amount0);
+        _safeTransfer(token1, to, amount1);
+        //更新balance0和balance1
+        balance0 = IERC20(token0).balanceOf(address(this));
+        balance1 = IERC20(token1).balanceOf(address(this));
+        _update(balance0, balance1, _reserve0, _reserve1);
+        if(feeOn)KLast=uint256(reserve0)/uint256(reserve1);
+        emit Burn(msg.sender, amount0, amount1, to);      
     }
 
 }

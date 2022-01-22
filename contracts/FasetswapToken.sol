@@ -15,13 +15,13 @@ import "./interfaces/IERC20.sol";
  * @author @7Levy
  */
 
-contract FastToken is Ownable,IERC20{
+contract FastswapToken is Ownable,IERC20{
     using Address for address;
 
-    string private constant _name = "Fastswap";
-    string private constant _symbol = "Fast";
-    uint8 private constant _decimals = 18;
-    uint private _totalSupply;
+    string private constant name = "Fastswap";
+    string private constant symbol = "Fast";
+    uint8 private constant decimals = 18;
+    uint private totalSupply;
 
 
 
@@ -30,14 +30,16 @@ contract FastToken is Ownable,IERC20{
     
 
     function _mint(address to,uint256 amount)internal {
-        _totalSupply = _totalSupply.add(value);
+        //总量增加
+        totalSupply = totalSupply.add(value);
+        //添加金额到to地址
         balanceOf[to]=balanceOf[to].add(value);
         emit Transfer(address(0),to,value);
     }
 
     function _burn(address from,uint value)internal{
-        balanceOf[from]=balanceOf[from].sub(value);
-        totalSupply=totalSupply.sub(value);
+        balanceOf[from]=balanceOf[from]-value;
+        totalSupply=totalSupply-value;
         emit Transfer(from,address(0),value);
     }
 
