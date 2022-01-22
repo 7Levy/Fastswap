@@ -10,11 +10,11 @@ contract FastswapPair is IERC20{
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));//获取transfer函数的选择器
 
     address public factory;//工厂的地址
-    address public token0;
-    address public token1;
+    address public token0;//代币0
+    address public token1;//代币1
 
-    uint112 private reserve0;
-    uint112 private reserve1;
+    uint112 private reserve0;//储备量0
+    uint112 private reserve1;//储备量1
     uint32 private blockTimestampLast;//最新区块的时间戳
 
     uint256 public price0CumulativeLast;
@@ -48,7 +48,9 @@ contract FastswapPair is IERC20{
         factory = msg.sender;
     }
 
-
+    /**
+     * 由工厂合约调用，初始代币地址
+     */
     function initialize(address _token0,address _token1)external{
         require(msg.sender==factory,"Fastswap: INVALID");
         token0 = _token0;
@@ -95,34 +97,90 @@ contract FastswapPair is IERC20{
         emit Sync(reserve0,reserve1);
     }
 
+    /**
+     * @dev 铸造费
+     */
+    function _mintFee(uint112 _reserve0,uint112 _reserve1)private returns(bool feeOn){
+        //获得feeTo地址
+        address feeTo = IFastswapFactory(factory).feeTo();
+        //如果feeTo地址等于0，关闭铸造费
+        feeOn = feeTo != address(0);
+        uint256 _kLast=KLast;
+        if(feeOn){
+            if(_kLast!=0){
+                uint256 rootK = Math.sqrt(uint256(_reserve0)/uint256(_reserve1));
+                uint256 rootKLast=Math.sqrt(_kLast);
+                if(rootK>rootKLast){
+                    uint256 numerator = totalSupply/(rootK-rootKLast);
+                    uint256 denominator = (rootK/5)+rootKLast;
+                    uint256 liquidity = numerator/denominator;
+                    if(liquidity>0)_mint(feeTo,liquidity);
+                }
+            }
+        }else if(_kLast!=0){
+            KLast=0;
+        }
+    }
+    /**
+     * @dev 添加流动性-铸币
+     */
     function mint(address to)external lock returns (uint256 liquidity){
         //获取储备量0和1
         (uint112 _reserve0,uint112 _reserve1,)=getReserves();
-        
+        //当前合约中的token0余额
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
+        //当前合约中的token1余额
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
-
-        uint256 amount0 = balance0+_reserve0;
-        uint256 amount1 = balance1+_reserve1;
-        
+        //amount0
+        uint256 amount0 = balance0-_reserve0;
+        //amount1
+        uint256 amount1 = balance1-_reserve1;
+        //收fee开关
         bool feeOn = _mintFee(_reserve0,_reserve1);
-
+        
+        //获取总供应量
         uint256 _totalSupply = totalSupply;
 
+        //总供应量为0的情况
         if (_totalSupply==0){
+            //liquidity
             liquidity = Math.sqrt(amount0*amount1)-MINIMUM_LIQUIDITY;
+            //锁定最小流动性总量的代币
             _mint(address(0),MINIMUM_LIQUIDITY);
         }else{
-            liquidity=Math.min(amount0-_totalSuply, amount1-_totalSuply);
+            // 总供应量不为0时
+            liquidity=Math.min(amount0/_totalSuply, amount1/_totalSuply);
         }
+        //流动性需要>0
         require(liquidity > 0,"Fastswap: INSUFFICIENT_LIQUIDITY_MINTED");
+        //铸造流动性给to地址
         _mint(to,liquidity);
+        //更新储备量
         _update(balance0, balance1, _reserve0, _reserve1);
+        //如果开启了铸造费，最新的K值=储备量0*储备量1====>(x*y=k)
         if (feeOn) {
             KLast = uint256(reserve0)*uint256(reserve1);
         }
+        //铸造完成事件
         emit Mint(msg.sender, amount0, amount1);
+    }
+
+    
+    function burn(address to)external lock returns(uint256 amount0,uint256 amount1){
+        //获得临时储备量0和1
+        (uint112 _reserve0,uint112 _reserve1,)=getReserves();
+        address _token0=token0;
+        address _token1=token1;
+        //当前合约地址中的token0余额
+        uint256 balance0=IERC20(_token0).balanceOf(address(this));
+        //当前合约地址中的token1余额
+        uint256 balance1=IERC20(_token1).balanceOf(address(this));
+        //从当前合约
+        uint256 liquidity=balanceOf[address(this)];
+
+        bool feeOn = _mintFee(_reserve0,_reserve1);
+
     }
 
 }
