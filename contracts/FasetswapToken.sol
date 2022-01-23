@@ -4,57 +4,154 @@ pragma solidity ^0.8.0;
 import "./utils/Ownable.sol";
 import "./utils/Context.sol";
 import "./libraries/Address.sol";
-import "./interfaces/IERC20.sol";
-
+import "./interfaces/IFastswapERC20.sol";
 /**
- * @dev ERC20代币的实现.
- * 分红机制-每笔交易5%给所有代币持有人，7%自动添加进流动性
- * 初始燃烧总量的50%
- * 流动性锁定
- * 预售后放弃所有权
+ * @dev Fastswap-ERC20代币的实现.
  * @author @7Levy
  */
 
-contract FastswapToken is Ownable,IERC20{
-    using Address for address;
+contract FastswapToken is IFastswapERC20{
+    using SafeMath for uint256;
+    //token名称
+    string public constant name = "Fastswap";
+    //token缩写
+    string public constant symbol = "FAST";
+    //token精度
+    uint8 public constant decimals = 18;
+    //总量
+    uint256 public totalSupply;
+    //余额映射
+    mapping(address => uint256) public balanceOf;
+    //批准映射
+    mapping(address => mapping(address => uint256)) public allowance;
 
-    string private constant name = "Fastswap";
-    string private constant symbol = "Fast";
-    uint8 private constant decimals = 18;
-    uint private totalSupply;
+    //域分割
+    bytes32 public DOMAIN_SEPARATOR;
+    // keccak256('Permit(address owner,address spender,uint value,uint nonce,uint deadline)');
+    bytes32
+        public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+    //nonces映射
+    mapping(address => uint256) public nonces;
 
+    //批准事件
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+    //发送事件
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
+    /**
+     * @dev 构造函数
+     */
+    constructor() public {
+        uint256 chainId;
+        // solium-disable-next-line
+        assembly {
+            chainId := chainid
+        }
+        //EIP712Domain
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes(name)),
+                keccak256(bytes("1")),
+                chainId,
+                address(this)
+            )
+        );
+    }
 
-    uint256 public constant taxFee=3;
-    uint256 public constant liquidityFee=3;
-    
-
-    function _mint(address to,uint256 amount)internal {
-        //总量增加
+    function _mint(address to, uint256 value) internal {
         totalSupply = totalSupply.add(value);
-        //添加金额到to地址
-        balanceOf[to]=balanceOf[to].add(value);
-        emit Transfer(address(0),to,value);
+        balanceOf[to] = balanceOf[to].add(value);
+        emit Transfer(address(0), to, value);
     }
 
-    function _burn(address from,uint value)internal{
-        balanceOf[from]=balanceOf[from]-value;
-        totalSupply=totalSupply-value;
-        emit Transfer(from,address(0),value);
+    function _burn(address from, uint256 value) internal {
+        balanceOf[from] = balanceOf[from].sub(value);
+        totalSupply = totalSupply.sub(value);
+        emit Transfer(from, address(0), value);
     }
 
-    function name()public view returns(string memory){
-        return _name;
+    function _approve(
+        address owner,
+        address spender,
+        uint256 value
+    ) private {
+        allowance[owner][spender] = value;
+        emit Approval(owner, spender, value);
     }
 
-    function symbol()public view returns(string memory){
-        return _symbol;
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) private {
+        balanceOf[from] = balanceOf[from].sub(value);
+        balanceOf[to] = balanceOf[to].add(value);
+        emit Transfer(from, to, value);
     }
-    function decimals()public view returns(uint8){
-        return _decimals;
+
+    function approve(address spender, uint256 value) external returns (bool) {
+        _approve(msg.sender, spender, value);
+        return true;
     }
-    function totalSupply()public view returns(uint256){
-        return _totalSupply;
+
+    function transfer(address to, uint256 value) external returns (bool) {
+        _transfer(msg.sender, to, value);
+        return true;
     }
-    
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool) {
+        if (allowance[from][msg.sender] != uint256(-1)) {
+            allowance[from][msg.sender] = allowance[from][msg.sender].sub(
+                value
+            );
+        }
+        _transfer(from, to, value);
+        return true;
+    }
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        // solium-disable-next-line security/no-block-members
+        require(deadline >= block.timestamp, "UniswapV2: EXPIRED");
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        PERMIT_TYPEHASH,
+                        owner,
+                        spender,
+                        value,
+                        nonces[owner]++,
+                        deadline
+                    )
+                )
+            )
+        );
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        require(
+            recoveredAddress != address(0) && recoveredAddress == owner,
+            "UniswapV2: INVALID_SIGNATURE"
+        );
+        _approve(owner, spender, value);
+    }
 }
