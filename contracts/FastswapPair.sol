@@ -201,4 +201,32 @@ contract FastswapPair is IERC20,FastswapToken{
         emit Burn(msg.sender, amount0, amount1, to);      
     }
 
+    /**
+     * @dev 代币交换
+     */
+    function swap(uin256 amount0Out,uint256 amount1Out,address to,bytes calldata data)external lock{
+        require(amount0out>0||amount1Out>0,"Fastswap: INSUFFICIENT OUTPUT AMOUNT");
+
+        (uint112 _reserve0,uint112 _reserve1,)=getReserves();
+        require(amount0Out<_reserve0&&amoun1Out<_reserve1,"INSUFFICIENT LIQUIDITY");
+        uint256 balance0;
+        uint256 balance1;
+        {
+            address _token0 = token0;
+            address _token1 = token1;
+            require(to!=_token0&&to!=_token1,"Fastswap: INVALID_TO");
+            if(amount0Out>0)_safeTransfer(_token0, to, amount0Out);
+            if(amount1Out>0)_safeTransfer(_token1, to, amount1Out);
+            if(data.length>0){
+                IFastswapCallee(to).fastswapCall(msg.sender,amount0Out,amount1Out,data);
+            }
+            balance0 = IERC20(_token0).balanceOf(address(this));
+            balance1 = IERC20(_token1).balanceOf(address(this));
+        }
+        uint256 amount0In = balance0>_reserve0-amount0Out?balance0-(_reserve0-amount0Out):0;
+        uint256 amount1In = balance1>_reserve1-amount1Out?balance1-(_reserve1-amount1Out):0;
+
+
+        
+    }
 }
