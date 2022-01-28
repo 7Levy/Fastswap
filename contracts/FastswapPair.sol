@@ -6,26 +6,29 @@ import "./libraries/UQ112x112.sol";
 import "./FastswapToken.sol";
 import "./libraries/Math.sol";
 import "./interfaces/IFactory.sol";
-contract FastswapPair is IERC20,FastswapToken{
+import "./interfaces/IFastswapPair.sol";
+
+contract FastswapPair is IFastswapPair, FastswapToken {
     using UQ112x112 for uint224;
-    uint256 public constant MINIMUM_LIQUIDITY=10**3;//最小流动性
-    bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));//获取transfer函数的选择器
+    uint256 public constant MINIMUM_LIQUIDITY = 10**3; //最小流动性
+    bytes4 private constant SELECTOR =
+        bytes4(keccak256(bytes("transfer(address,uint256)"))); //获取transfer函数的选择器
 
-    address public factory;//工厂的地址
-    address public token0;//代币0
-    address public token1;//代币1
+    address public factory; //工厂的地址
+    address public token0; //代币0
+    address public token1; //代币1
 
-    uint112 private reserve0;//储备量0
-    uint112 private reserve1;//储备量1
-    uint32 private blockTimestampLast;//最新区块的时间戳
+    uint112 private reserve0; //储备量0
+    uint112 private reserve1; //储备量1
+    uint32 private blockTimestampLast; //最新区块的时间戳
 
     uint256 public price0CumulativeLast;
     uint256 public price1CumulativeLast;
 
     uint256 public KLast; //最新的K值
-    uint256 private unlocked=1;//防止重入锁
+    uint256 private unlocked = 1; //防止重入锁
 
-    event Mint(address indexed sender,uint256 amount0,uint256 amount1);
+    event Mint(address indexed sender, uint256 amount0, uint256 amount1);
 
     event Burn(
         address indexed sender,
@@ -43,9 +46,8 @@ contract FastswapPair is IERC20,FastswapToken{
         address indexed to
     );
 
-    event Sync(uint112 reserve0,uint112 reserve1);
+    event Sync(uint112 reserve0, uint112 reserve1);
 
-    
     constructor() {
         factory = msg.sender;
     }
@@ -53,143 +55,181 @@ contract FastswapPair is IERC20,FastswapToken{
     /**
      * 由工厂合约调用，初始代币地址
      */
-    function initialize(address _token0,address _token1)external{
-        require(msg.sender==factory,"Fastswap: INVALID");
+    function initialize(address _token0, address _token1) external {
+        require(msg.sender == factory, "Fastswap: INVALID");
         token0 = _token0;
         token1 = _token1;
     }
 
-    modifier lock(){
-        require(unlocked==1,"Fastswap: INVALID");
-        unlocked=0;
+    modifier lock() {
+        require(unlocked == 1, "Fastswap: INVALID");
+        unlocked = 0;
         _;
-        unlocked=1;
+        unlocked = 1;
     }
 
-    function getReserves()public view returns(uint112 _reserve0,uint112 _reserve1,uint32 _blockTimestampLast){
-        _reserve0=reserve0;
-        _reserve1=reserve1;
-        _blockTimestampLast=blockTimestampLast;
+    function getReserves()
+        public
+        view
+        returns (
+            uint112 _reserve0,
+            uint112 _reserve1,
+            uint32 _blockTimestampLast
+        )
+    {
+        _reserve0 = reserve0;
+        _reserve1 = reserve1;
+        _blockTimestampLast = blockTimestampLast;
     }
 
-    function _safeTransfer(address token,address to,uint256 value)private{
+    function _safeTransfer(
+        address token,
+        address to,
+        uint256 value
+    ) private {
         //solium-disable-next-line
-        (bool success,bytes memory data)=token.call(abi.encodeWithSelector(SELECTOR, to,value));
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(SELECTOR, to, value)
+        );
         require(
-            success && (data.length==0||abi.decode(data,(bool))),
+            success && (data.length == 0 || abi.decode(data, (bool))),
             "Fastswap: TRANSFER FAILED"
         );
     }
-    
 
-    function _update(uint256 balance0,uint256 balance1,uint112 _reserve0,uint112 _reserve1)private{
+    function _update(
+        uint256 balance0,
+        uint256 balance1,
+        uint112 _reserve0,
+        uint112 _reserve1
+    ) private {
         //确保balance0和balance1没有超出uint112最大值
-        require(balance0<=type(uint112).max&&balance1<=type(uint112).max,"Fastswap: OVERFLOW");
-        
+        require(
+            balance0 <= type(uint112).max && balance1 <= type(uint112).max,
+            "Fastswap: OVERFLOW"
+        );
+
         //solium-disable-next-line
-        uint32 blockTimestamp = uint32(block.timestamp%2**32);
-        uint32 timeElapsed =blockTimestamp - blockTimestampLast;
-        if (timeElapsed >0&&_reserve0!=0&&_reserve1!=0){
-            price0CumulativeLast +=uint256(UQ112x112.encode(_reserve1).uqdiv(_reserve0))*timeElapsed;
-            price1CumulativeLast +=uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1))*timeElapsed;
+        uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+        uint32 timeElapsed = blockTimestamp - blockTimestampLast;
+        if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+            price0CumulativeLast +=
+                uint256(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) *
+                timeElapsed;
+            price1CumulativeLast +=
+                uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) *
+                timeElapsed;
         }
         reserve0 = uint112(balance0);
         reserve1 = uint112(balance1);
         blockTimestampLast = blockTimestamp;
-        emit Sync(reserve0,reserve1);
+        emit Sync(reserve0, reserve1);
     }
 
     /**
      * @dev 铸造费
      */
-    function _mintFee(uint112 _reserve0,uint112 _reserve1)private returns(bool feeOn){
+    function _mintFee(uint112 _reserve0, uint112 _reserve1)
+        private
+        returns (bool feeOn)
+    {
         //获得feeTo地址
         address feeTo = IFactory(factory).feeTo();
         //如果feeTo地址等于0，关闭铸造费
         feeOn = feeTo != address(0);
-        uint256 _kLast=KLast;
-        if(feeOn){
-            if(_kLast!=0){
-                uint256 rootK = Math.sqrt(uint256(_reserve0)/uint256(_reserve1));
-                uint256 rootKLast=Math.sqrt(_kLast);
-                if(rootK>rootKLast){
-                    uint256 numerator = totalSupply/(rootK-rootKLast);
-                    uint256 denominator = (rootK/5)+rootKLast;
-                    uint256 liquidity = numerator/denominator;
-                    if(liquidity>0)_mint(feeTo,liquidity);
+        uint256 _kLast = KLast;
+        if (feeOn) {
+            if (_kLast != 0) {
+                uint256 rootK = Math.sqrt(
+                    uint256(_reserve0) / uint256(_reserve1)
+                );
+                uint256 rootKLast = Math.sqrt(_kLast);
+                if (rootK > rootKLast) {
+                    uint256 numerator = totalSupply / (rootK - rootKLast);
+                    uint256 denominator = (rootK / 5) + rootKLast;
+                    uint256 liquidity = numerator / denominator;
+                    if (liquidity > 0) _mint(feeTo, liquidity);
                 }
             }
-        }else if(_kLast!=0){
-            KLast=0;
+        } else if (_kLast != 0) {
+            KLast = 0;
         }
     }
+
     /**
      * @dev 添加流动性-铸币
      */
-    function mint(address to)external lock returns (uint256 liquidity){
+    function mint(address to) external lock returns (uint256 liquidity) {
         //获取储备量0和1
-        (uint112 _reserve0,uint112 _reserve1,)=getReserves();
+        (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
         //当前合约中的token0余额
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         //当前合约中的token1余额
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
         //amount0
-        uint256 amount0 = balance0-_reserve0;
+        uint256 amount0 = balance0 - _reserve0;
         //amount1
-        uint256 amount1 = balance1-_reserve1;
+        uint256 amount1 = balance1 - _reserve1;
         //收fee开关
-        bool feeOn = _mintFee(_reserve0,_reserve1);
-        
+        bool feeOn = _mintFee(_reserve0, _reserve1);
+
         //获取总供应量
         uint256 _totalSupply = totalSupply;
 
         //总供应量为0的情况
-        if (_totalSupply==0){
+        if (_totalSupply == 0) {
             //liquidity
-            liquidity = Math.sqrt(amount0*amount1)-MINIMUM_LIQUIDITY;
+            liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
             //锁定最小流动性总量的代币
-            _mint(address(0),MINIMUM_LIQUIDITY);
-        }else{
+            _mint(address(0), MINIMUM_LIQUIDITY);
+        } else {
             // 总供应量不为0时
-            liquidity=Math.min(amount0/_totalSuply, amount1/_totalSuply);
+            liquidity = Math.min(amount0 / _totalSuply, amount1 / _totalSuply);
         }
         //流动性需要>0
-        require(liquidity > 0,"Fastswap: INSUFFICIENT_LIQUIDITY_MINTED");
+        require(liquidity > 0, "Fastswap: INSUFFICIENT_LIQUIDITY_MINTED");
         //铸造流动性给to地址
-        _mint(to,liquidity);
+        _mint(to, liquidity);
         //更新储备量
         _update(balance0, balance1, _reserve0, _reserve1);
         //如果开启了铸造费，最新的K值=储备量0*储备量1====>(x*y=k)
         if (feeOn) {
-            KLast = uint256(reserve0)*uint256(reserve1);
+            KLast = uint256(reserve0) * uint256(reserve1);
         }
         //铸造完成事件
         emit Mint(msg.sender, amount0, amount1);
     }
 
-     /**
+    /**
      * @dev 销毁流动性
      */
-    function burn(address to)external lock returns(uint256 amount0,uint256 amount1){
+    function burn(address to)
+        external
+        lock
+        returns (uint256 amount0, uint256 amount1)
+    {
         //获得临时储备量0和1
-        (uint112 _reserve0,uint112 _reserve1,)=getReserves();
-        address _token0=token0;
-        address _token1=token1;
+        (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
+        address _token0 = token0;
+        address _token1 = token1;
         //当前合约地址中的token0余额
-        uint256 balance0=IERC20(_token0).balanceOf(address(this));
+        uint256 balance0 = IERC20(_token0).balanceOf(address(this));
         //当前合约地址中的token1余额
-        uint256 balance1=IERC20(_token1).balanceOf(address(this));
+        uint256 balance1 = IERC20(_token1).balanceOf(address(this));
         //获取当前交易对合约的流动性
-        uint256 liquidity=balanceOf[address(this)];
+        uint256 liquidity = balanceOf[address(this)];
         //获取铸造费开关
-        bool feeOn = _mintFee(_reserve0,_reserve1);
-        uint256 _totalSupply= totalSupply;
-        amount0 =liquidity*balance0/_totalSupply;
-        amount1 =liquidity*balance1/_totalSupply;
-        require(amount0>0&&amount1>0,"Fastswap: INSUFFICIENT LIQUIDITY BURNED");
+        bool feeOn = _mintFee(_reserve0, _reserve1);
+        uint256 _totalSupply = totalSupply;
+        amount0 = (liquidity * balance0) / _totalSupply;
+        amount1 = (liquidity * balance1) / _totalSupply;
+        require(
+            amount0 > 0 && amount1 > 0,
+            "Fastswap: INSUFFICIENT LIQUIDITY BURNED"
+        );
         //销毁当前合约的流动性数量
-        _burn(address(this),liquidity);
+        _burn(address(this), liquidity);
         //使用底层交易方法返还代币token0和token1
         _safeTransfer(token0, to, amount0);
         _safeTransfer(token1, to, amount1);
@@ -197,36 +237,69 @@ contract FastswapPair is IERC20,FastswapToken{
         balance0 = IERC20(token0).balanceOf(address(this));
         balance1 = IERC20(token1).balanceOf(address(this));
         _update(balance0, balance1, _reserve0, _reserve1);
-        if(feeOn)KLast=uint256(reserve0)/uint256(reserve1);
-        emit Burn(msg.sender, amount0, amount1, to);      
+        if (feeOn) KLast = uint256(reserve0) / uint256(reserve1);
+        emit Burn(msg.sender, amount0, amount1, to);
     }
 
     /**
      * @dev 代币交换
      */
-    function swap(uin256 amount0Out,uint256 amount1Out,address to,bytes calldata data)external lock{
-        require(amount0out>0||amount1Out>0,"Fastswap: INSUFFICIENT OUTPUT AMOUNT");
+    function swap(
+        uin256 amount0Out,
+        uint256 amount1Out,
+        address to,
+        bytes calldata data
+    ) external lock {
+        require(
+            amount0out > 0 || amount1Out > 0,
+            "Fastswap: INSUFFICIENT OUTPUT AMOUNT"
+        );
 
-        (uint112 _reserve0,uint112 _reserve1,)=getReserves();
-        require(amount0Out<_reserve0&&amoun1Out<_reserve1,"INSUFFICIENT LIQUIDITY");
+        (uint112 _reserve0, uint112 _reserve1, ) = getReserves();
+        require(
+            amount0Out < _reserve0 && amoun1Out < _reserve1,
+            "INSUFFICIENT LIQUIDITY"
+        );
         uint256 balance0;
         uint256 balance1;
         {
             address _token0 = token0;
             address _token1 = token1;
-            require(to!=_token0&&to!=_token1,"Fastswap: INVALID_TO");
-            if(amount0Out>0)_safeTransfer(_token0, to, amount0Out);
-            if(amount1Out>0)_safeTransfer(_token1, to, amount1Out);
-            if(data.length>0){
-                IFastswapCallee(to).fastswapCall(msg.sender,amount0Out,amount1Out,data);
+            require(to != _token0 && to != _token1, "Fastswap: INVALID_TO");
+            if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out);
+            if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out);
+            if (data.length > 0) {
+                IFastswapCallee(to).fastswapCall(
+                    msg.sender,
+                    amount0Out,
+                    amount1Out,
+                    data
+                );
             }
             balance0 = IERC20(_token0).balanceOf(address(this));
             balance1 = IERC20(_token1).balanceOf(address(this));
         }
-        uint256 amount0In = balance0>_reserve0-amount0Out?balance0-(_reserve0-amount0Out):0;
-        uint256 amount1In = balance1>_reserve1-amount1Out?balance1-(_reserve1-amount1Out):0;
-
-
-        
+        uint256 amount0In = balance0 > _reserve0 - amount0Out
+            ? balance0 - (_reserve0 - amount0Out)
+            : 0;
+        uint256 amount1In = balance1 > _reserve1 - amount1Out
+            ? balance1 - (_reserve1 - amount1Out)
+            : 0;
+        require(
+            amount0In > 0 || amount1In > 0,
+            "Fasrswap: INSUFFICIENT INPUT AMOUNT"
+        );
+        {
+            uint256 balance0Adjusted = balance0 * 1000 - (amount0In * 3);
+            uint256 balance1Adjusted = balance1 * 1000 - (amount1In * 3);
+            reuqire(
+                balance0Adjusted * balanceAdjusted >=
+                    uint256(_reserve0) * uint256(_reserve1) * (1000**2),
+                "Fastswap:K"
+            );
+        }
+        _update(balance0, balance1, _reserve0, _reserve1);
+        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
+    
 }

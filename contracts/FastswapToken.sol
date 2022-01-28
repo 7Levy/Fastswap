@@ -5,12 +5,13 @@ import "./utils/Ownable.sol";
 import "./utils/Context.sol";
 import "./libraries/Address.sol";
 import "./interfaces/IFastswapERC20.sol";
+
 /**
  * @dev Fastswap-ERC20代币的实现.
  * @author @7Levy
  */
 
-contract FastswapToken is IFastswapERC20{
+contract FastswapToken is IFastswapERC20 {
     using SafeMath for uint256;
     //token名称
     string public constant name = "Fastswap";
@@ -28,8 +29,8 @@ contract FastswapToken is IFastswapERC20{
     //域分割
     bytes32 public DOMAIN_SEPARATOR;
     // keccak256('Permit(address owner,address spender,uint value,uint nonce,uint deadline)');
-    bytes32
-        public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+    bytes32 public constant PERMIT_TYPEHASH =
+        0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
     //nonces映射
     mapping(address => uint256) public nonces;
 
@@ -49,7 +50,7 @@ contract FastswapToken is IFastswapERC20{
         uint256 chainId;
         // solium-disable-next-line
         assembly {
-            chainId := chainid
+            chainId := chainId
         }
         //EIP712Domain
         DOMAIN_SEPARATOR = keccak256(
