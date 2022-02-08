@@ -148,17 +148,16 @@ contract FastswapRouter01 is IFastswapRouter01 {
         );
         //获取token和WETH的交易对合约地址
         address pair = FastswapLibrary.pairFor(factory, token, WETH);
-        TransferHelper.safeTransferFrom(token,msg.sender,pair,amountToken);
+        TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
         //向WETH合约存储amountETH数量的WETH代币，.value用于调用合约的时候设置msg.value
-        IWETH(WETH).deposit.value(amountETH)();
+        IWETH(WETH).deposit{value: amountETH}();
         //发送WETH到交易对合约
-        assert(IWETH(WETH).transfer(pair,amountETH));
+        assert(IWETH(WETH).transfer(pair, amountETH));
         //铸造流动性
-        liquidity=IFastswapPair(pair).mint(to);
+        liquidity = IFastswapPair(pair).mint(to);
         //如果收到的ETH数量大于amountETH，返还给调用者多余的代币
-        if (msg.value>amountETH){
-            TransferHelper.safeTransferETH(msg.sender,msg.value-amountETH);
+        if (msg.value > amountETH) {
+            TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
         }
-
     }
 }
