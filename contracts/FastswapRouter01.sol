@@ -185,6 +185,32 @@ contract FastswapRouter01 is IFastswapRouter01 {
         require(amountB>=amountBMin,"FastswapRouter01: INSUFFICIENT B AMOUNT");
     }
 
+    /**
+     * @dev 移除ETH-ERC20流动性
+     */
 
-    
+    function removeLiquidityETH(
+        address token,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline
+    ) public ensure(deadline)returns (uint256 amountToken, uint256 amountETH){
+        //销毁流动性
+        (amountToken,amountETH)=removeLiquidiy(
+            toekn,
+            WETH,
+            liquidity,
+            amountTokenMin,
+            amountETHMin,
+            address(this),
+            deadline
+        );
+        TransferHelper.safeTransfer(token,to,amountToken);
+        IWETH(WETH).withdraw(amountETH);
+        TransferHelper.safeTransferETH(to,amountETH);
+    }
+
+
 }
