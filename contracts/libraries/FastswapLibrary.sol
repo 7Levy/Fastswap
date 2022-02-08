@@ -52,7 +52,9 @@ library FastswapLibrary {
         amountB=amountA*reserveB/reserveA;
     }
 
-
+    /**
+     * @dev 获取单项资产的输出数额
+     */
     function getAmountOut(uint256 amountIn,uint256 reserveIn,uint256 reserveOut)internal pure returns(uint256 amountOut){
         require(amountIn>0,"FastswapLibrary: INSUFFICIENT INPUT AMOUNT");
         require(reserveIn>0&&reserveOut>0,"FastswapLibrary: INSUFFICIENT LIQUIDITY");
@@ -61,4 +63,24 @@ library FastswapLibrary {
         uint256 denominator = (reserveIn*1000)+amountInWithFee;
         amountOut = numerator/denominator;
     }
+
+    /**
+     * @dev 获取单项资产的输入数额
+     */
+    function getAmountIn(uint256 amountOut,uint256 reserveIn,uint256 reserveOut)internal pure returns(uint256 amountIn){
+        require(amountOut>0,"FastswapLibrary: INSUFFICIENT OUTPUT AMOUNT");
+        require(reserveIn>0&&reserveOut>0,"FastswapLibrary: INSUFFICIENT LIQUIDITY");
+        uint256 numerator = reserveIn*amountOut*1000;
+        uint256 denominator = reserveOut-amountOut*997;
+        amountIn = (numerator/denominator)+1;
+    }
+    
+
+    /**
+     * @dev 获取输出数额
+     */
+     function getAmountsOut(address factory,uint256 amountIn,address[] memory path)internal view returns(uint256[] memory amounts){
+         require(path.length>=2,"FastswapLibrary: INVALID_PATH");
+         
+     }
 }
