@@ -78,7 +78,7 @@ contract FastswapRouter01 is IFastswapRouter01 {
     }
 
     /**
-     * @dev 添加流动性池子
+     * @dev 添加ERC20对流动性池子
      */
     function addLiquidity(
         address tokenA,
@@ -160,4 +160,31 @@ contract FastswapRouter01 is IFastswapRouter01 {
             TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
         }
     }
+
+    /**
+     * @dev 移除ERC20对流动性
+     */
+
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline
+    ) public ensure(deadline) returns (uint256 amountA, uint256 amountB) {
+        address pair = FastswapLibrary.pairFor(factory, tokenA, tokenB);
+        //返还流动性代币Fast
+        IFastswapPair(pair).transferFrom(msg.sender, pair, liquidity);
+        //销毁Fast代币，计算TokenA和TokenB的数量
+        (uint256 amount0,uint256 amount1)=IFastswapPair(pair).burn(to);
+        (address token0,)=FastswapLibrary.sortTokens(tokenA, tokenB);
+        (amountA,amountB)=tokenA==token0?(amountA,amountB):(amountB,amountA);
+        require(amountA>=amountAMin,"FastswapRouter01: INSUFFICIENT A AMOUNT");
+        require(amountB>=amountBMin,"FastswapRouter01: INSUFFICIENT B AMOUNT");
+    }
+
+
+    
 }
