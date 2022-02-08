@@ -212,5 +212,38 @@ contract FastswapRouter01 is IFastswapRouter01 {
         TransferHelper.safeTransferETH(to,amountETH);
     }
 
+    /**
+     * @dev 带签名的移除流动性
+     */
+
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 amountA, uint256 amountB){
+        //计算TokenA，TokenB的CREATE2地址
+        address pair = FastswapLibrary.pairFor(factory, tokenA, tokenB);
+        //如果批准全部，value等于uint256的最大值
+        uint256 value = approveMax ? type(uint256).max:liquidity;
+        //签名授权，调用者、当前合约地址、值、截止时间、v、r、s
+        IFastswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountA, amountB) = removeLiquidity(
+            tokenA,
+            tokenB,
+            liquidity,
+            amountAMin,
+            amountBMin,
+            to,
+            deadline
+        );
+    }
 
 }
