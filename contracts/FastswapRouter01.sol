@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 import "./interfaces/IFastswapRouter01.sol";
 import "./interfaces/IFactory.sol";
 import "./libraries/FastswapLibrary.sol";
-
+import "./libraries/TransferHelper.sol";
+import "./interfaces/IFastswapPair.sol";
 contract FastswapRouter01 is IFastswapRouter01 {
     //部署的工厂地址和weth地址
     address public factory;
@@ -95,6 +96,7 @@ contract FastswapRouter01 is IFastswapRouter01 {
             uint256 liquidity
         )
     {
+        //获取amountA,获取amountB
         (amountA, amountB) = _addLiquidity(
             tokenA,
             tokenB,
@@ -103,10 +105,13 @@ contract FastswapRouter01 is IFastswapRouter01 {
             amountAMin,
             amountBMin
         );
-
+        //获取TokenA和TokenB的交易对合约
         address pair = FastswapLibrary.pairFor(factory, tokenA, tokenB);
-        TransferHelper.safeTransferFrom(tokenA,msg.sender,pair,amountA);
-        TransferHelper.safeTransferFrom(tokenB,msg.sender,pair,amountB);
+        //发送TokenA到交易对合约
+        TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
+        //发送TokenB到交易合约
+        TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+        //铸造流动性
         liquidity = IFastswapPair(pair).mint(to);
     }
 }
