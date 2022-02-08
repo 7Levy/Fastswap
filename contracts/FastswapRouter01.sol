@@ -6,6 +6,8 @@ import "./interfaces/IFactory.sol";
 import "./libraries/FastswapLibrary.sol";
 import "./libraries/TransferHelper.sol";
 import "./interfaces/IFastswapPair.sol";
+import "./interfaces/IWETH.sol";
+
 contract FastswapRouter01 is IFastswapRouter01 {
     //部署的工厂地址和weth地址
     address public factory;
@@ -113,5 +115,50 @@ contract FastswapRouter01 is IFastswapRouter01 {
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
         //铸造流动性
         liquidity = IFastswapPair(pair).mint(to);
+    }
+
+    /**
+     * @dev 添加ETH流动性
+     */
+    function addLiquidityETH(
+        address token,
+        uint256 amountTokenDesired,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline
+    )
+        external
+        payable
+        ensure(deadline)
+        returns (
+            uint256 amountToken,
+            uint256 amountETH,
+            uint256 liquidity
+        )
+    {
+        //获取Token和ETH的数量
+        (amountToken, amountETH) = _addLiquidity(
+            tokenA,
+            WETH,
+            amountTokenDesired,
+            msg.value,
+            amountTokenMin,
+            amountETHMin
+        );
+        //获取token和WETH的交易对合约地址
+        address pair = FastswapLibrary.pairFor(factory, token, WETH);
+        TransferHelper.safeTransferFrom(token,msg.sender,pair,amountToken);
+        //向WETH合约存储amountETH数量的WETH代币，.value用于调用合约的时候设置msg.value
+        IWETH(WETH).deposit.value(amountETH)();
+        //发送WETH到交易对合约
+        assert(IWETH(WETH).transfer(pair,amountETH));
+        //铸造流动性
+        liquidity=IFastswapPair(pair).mint(to);
+        //如果收到的ETH数量大于amountETH，返还给调用者多余的代币
+        if (msg.value>amountETH){
+            TransferHelper.safeTransferETH(msg.sender,msg.value-amountETH);
+        }
+
     }
 }
