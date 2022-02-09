@@ -121,6 +121,9 @@ contract FastswapToken is IFastswapERC20 {
         return true;
     }
 
+    /**
+     * @dev 签名授权
+     */
     function permit(
         address owner,
         address spender,

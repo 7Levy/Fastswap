@@ -246,4 +246,23 @@ contract FastswapRouter01 is IFastswapRouter01 {
         );
     }
 
+    /**
+     * @dev 带签名的移除ETH流动性
+     */
+
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 amountToken, uint256 amountETH){
+        
+    }   
+
 }
