@@ -358,7 +358,6 @@ contract FastswapRouter01 is IFastswapRouter01 {
         _swap(amounts, path, to);
     }
 
-
     /**
      * @dev ERC20-ERC20精确兑换(少换精确)
      */
@@ -368,13 +367,20 @@ contract FastswapRouter01 is IFastswapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external ensure(deadline) returns (uint256[] memory amounts){
-        amounts = FastswapLibrary.getAmountsIn(factory,amountOut,path);
-        require(amounts[0]<=amountInMax,"FastswapRouter01: EXCESSIVE INPUT AMOUNT");
-        TransferHelper.safeTransferFrom(path[0],msg.sender,FastswapLibrary.pairFor(factory, path[0], path[1]),amounts[0]);
-        _swap(amounts,path,to);
+    ) external ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = FastswapLibrary.getAmountsIn(factory, amountOut, path);
+        require(
+            amounts[0] <= amountInMax,
+            "FastswapRouter01: EXCESSIVE INPUT AMOUNT"
+        );
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            FastswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
+        );
+        _swap(amounts, path, to);
     }
-
 
     /**
      * @dev ExactETH-ERC20
@@ -384,13 +390,21 @@ contract FastswapRouter01 is IFastswapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable ensure(deadline) returns (uint256[] memory amounts){
+    ) external payable ensure(deadline) returns (uint256[] memory amounts) {
         //确保第一个代币为WETH
-        require(path[0]==WETH,"FastswapRouter01: INVALID PATH");
+        require(path[0] == WETH, "FastswapRouter01: INVALID PATH");
         amounts = FastswapLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length-1]>=amountOutMin,"FastswapRouter01,INSUFFICIENT OUTPUT AMOUNT");
-        IWETH(WETH).deposit{value:amounts[0]}();
-        assert(IWETH(WETH).transfer(FastswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        require(
+            amounts[amounts.length - 1] >= amountOutMin,
+            "FastswapRouter01,INSUFFICIENT OUTPUT AMOUNT"
+        );
+        IWETH(WETH).deposit{value: amounts[0]}();
+        assert(
+            IWETH(WETH).transfer(
+                FastswapLibrary.pairFor(factory, path[0], path[1]),
+                amounts[0]
+            )
+        );
         _swap(amounts, path, to);
     }
 
@@ -403,28 +417,47 @@ contract FastswapRouter01 is IFastswapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external ensure(deadline) returns (uint256[] memory amounts){
-        require(path[path.length-1]==WETH,"FastswapRouter01: INVALID PATH");
-        amounts=FastswapLibrary.getAmountsIn(factory,amountOut,path);
-        require(amounts[0]<=amountInMax,"FastswapRouter01: EXCESSIVE INPUT AMOUNT");
-        TransferHelper.safeTransferFrom(path[0],msg.sender,FastswapLibrary.pairFor(factory, path[0], path[1]),amounts[0]);
+    ) external ensure(deadline) returns (uint256[] memory amounts) {
+        require(
+            path[path.length - 1] == WETH,
+            "FastswapRouter01: INVALID PATH"
+        );
+        amounts = FastswapLibrary.getAmountsIn(factory, amountOut, path);
+        require(
+            amounts[0] <= amountInMax,
+            "FastswapRouter01: EXCESSIVE INPUT AMOUNT"
+        );
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            FastswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
+        );
         _swap(amounts, path, address(this));
-        IWETH(WETH).withdraw(amounts[amounts.length-1]);
-        TransferHelper.safeTransferETH(to,amounts[amounts.length-1]);
+        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
 
-    
-     function swapExactTokensForETH(
+    function swapExactTokensForETH(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external ensure(deadline) returns (uint256[] memory amounts){
-        reuqire(path[path.length-1]==WETH,"FastswapRouter01: INVALID PATH");
-        amounts=FastswapLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length-1]>=amountOutMin,"FastswapRouter01: INSUFFICIENT OUTPUT AMOUNT");
-        TransferHelper.safeTransferFrom(path[0],msg.sender.FastswapLibrary.pairFor(factory,path[0],path[1]));
+    ) external ensure(deadline) returns (uint256[] memory amounts) {
+        reuqire(
+            path[path.length - 1] == WETH,
+            "FastswapRouter01: INVALID PATH"
+        );
+        amounts = FastswapLibrary.getAmountsOut(factory, amountIn, path);
+        require(
+            amounts[amounts.length - 1] >= amountOutMin,
+            "FastswapRouter01: INSUFFICIENT OUTPUT AMOUNT"
+        );
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender.FastswapLibrary.pairFor(factory, path[0], path[1])
+        );
         _swap(amounts, path, address(this));
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
@@ -435,18 +468,62 @@ contract FastswapRouter01 is IFastswapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable ensure(deadline) returns (uint256[] memory amounts){
-        reuqire(path[0]==WETH,"FastswapRouter01: INVALID PATH");
-        amounts=FastswapLibrary.getAmountsIn(factory,amountOut,path);
-        require(amounts[0]<=msg.value,"FastswapRouter01: EXCESSIVE INPUT AMOUNT");
-        IWETH(WETH).deposit{value:amounts[0]}();
-        assert(
-            IWETH(WETH).transfer(FastswapLibrary.pairFor(factory, path[0], path[1]),amounts[0])
+    ) external payable ensure(deadline) returns (uint256[] memory amounts) {
+        reuqire(path[0] == WETH, "FastswapRouter01: INVALID PATH");
+        amounts = FastswapLibrary.getAmountsIn(factory, amountOut, path);
+        require(
+            amounts[0] <= msg.value,
+            "FastswapRouter01: EXCESSIVE INPUT AMOUNT"
         );
-        _swap(amounts,path,to);
-        if(msg.value>amounts[0]){
-            TransferHelper.safeTransferETH(msg.sender,msg.value-amounts[0]);
+        IWETH(WETH).deposit{value: amounts[0]}();
+        assert(
+            IWETH(WETH).transfer(
+                FastswapLibrary.pairFor(factory, path[0], path[1]),
+                amounts[0]
+            )
+        );
+        _swap(amounts, path, to);
+        if (msg.value > amounts[0]) {
+            TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
         }
     }
+        function quote(
+        uint256 amountA,
+        uint256 reserveA,
+        uint256 reserveB
+    ) public pure returns (uint256 amountB) {
+        return UniswapV2Library.quote(amountA, reserveA, reserveB);
+    }
 
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) public pure returns (uint256 amountOut) {
+        return UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
+    }
+
+    function getAmountIn(
+        uint256 amountOut,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) public pure returns (uint256 amountIn) {
+        return UniswapV2Library.getAmountOut(amountOut, reserveIn, reserveOut);
+    }
+
+    function getAmountsOut(uint256 amountIn, address[] memory path)
+        public
+        view
+        returns (uint256[] memory amounts)
+    {
+        return UniswapV2Library.getAmountsOut(factory, amountIn, path);
+    }
+
+    function getAmountsIn(uint256 amountOut, address[] memory path)
+        public
+        view
+        returns (uint256[] memory amounts)
+    {
+        return UniswapV2Library.getAmountsIn(factory, amountOut, path);
+    }
 }
