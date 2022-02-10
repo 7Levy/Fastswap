@@ -299,28 +299,42 @@ contract FastswapRouter01 is IFastswapRouter01 {
         );
     }
 
-
     /**
      * @dev 交换的私有方法
      */
-    function _swap(uin256[] memory amounts,address[] memory path,address _to)private{
-        for (uin256 i;i<path.length-1;i++){
+    function _swap(
+        uin256[] memory amounts,
+        address[] memory path,
+        address _to
+    ) private {
+        for (uin256 i; i < path.length - 1; i++) {
             //输入地址，输出地址
-            (address input,address output)=(path[i],path[i+1]);
+            (address input, address output) = (path[i], path[i + 1]);
             //地址排序
-            (address token0,)=FastswapLibrary.sortTokens(input, output);
+            (address token0, ) = FastswapLibrary.sortTokens(input, output);
             //输出数额
-            uin256 amountOut = amounts[i+1];
-            
-            (uint256 amount0Out,uint256 amount1Out)=input==token0?(uin256(0),amountOut):(amountOut,uint256(0));
+            uin256 amountOut = amounts[i + 1];
+
+            (uint256 amount0Out, uint256 amount1Out) = input == token0
+                ? (uin256(0), amountOut)
+                : (amountOut, uint256(0));
 
             //计算to地址
-            address to=i<path.length-2?FastswapLibrary.pairFor(factory, output, path[i+2]):_to;
+            address to = i < path.length - 2
+                ? FastswapLibrary.pairFor(factory, output, path[i + 2])
+                : _to;
 
             //交换代币
-            IFastswapPair(FastswapLibrary.pairFor(factory, input, output)).swap(amount0Out,amount1Out,to,new bytes(0));
-            
+            IFastswapPair(FastswapLibrary.pairFor(factory, input, output)).swap(
+                    amount0Out,
+                    amount1Out,
+                    to,
+                    new bytes(0)
+                );
         }
     }
-    
+
+    /**
+     * @dev 交换代币的私有方法
+     */
 }
