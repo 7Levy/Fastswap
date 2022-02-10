@@ -335,6 +335,41 @@ contract FastswapRouter01 is IFastswapRouter01 {
     }
 
     /**
-     * @dev 交换代币的私有方法
+     * @dev ERC20-ERC20精确兑换(精确换多)
      */
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = FastswapLibrary.getAmountsOut(factory, amountIn, path);
+        require(
+            amounts[amounts.length - 1] >= amountOutMin,
+            "FastswapRouter01: INSUFFICIENT OUTPUT AMOUNTS"
+        );
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            FastswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
+        );
+        _swap(amounts, path, to);
+    }
+
+
+    /**
+     * @dev ERC20-ERC20精确兑换(少换精确)
+     */
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts){
+
+    }
+
 }
