@@ -377,7 +377,7 @@ contract FastswapRouter01 is IFastswapRouter01 {
 
 
     /**
-     * @dev ETH-ERC20
+     * @dev ExactETH-ERC20
      */
     function swapExactETHForTokens(
         uint256 amountOutMin,
@@ -395,7 +395,7 @@ contract FastswapRouter01 is IFastswapRouter01 {
     }
 
     /**
-     * @dev ERC20-ETH
+     * @dev ERC20-ExactETH
      */
     function swapTokensForExactETH(
         uint256 amountOut,
@@ -413,6 +413,40 @@ contract FastswapRouter01 is IFastswapRouter01 {
         TransferHelper.safeTransferETH(to,amounts[amounts.length-1]);
     }
 
+    
+     function swapExactTokensForETH(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external ensure(deadline) returns (uint256[] memory amounts){
+        reuqire(path[path.length-1]==WETH,"FastswapRouter01: INVALID PATH");
+        amounts=FastswapLibrary.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length-1]>=amountOutMin,"FastswapRouter01: INSUFFICIENT OUTPUT AMOUNT");
+        TransferHelper.safeTransferFrom(path[0],msg.sender.FastswapLibrary.pairFor(factory,path[0],path[1]));
+        _swap(amounts, path, address(this));
+        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+    }
 
+    function swapETHForExactTokens(
+        uint256 amountOut,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable ensure(deadline) returns (uint256[] memory amounts){
+        reuqire(path[0]==WETH,"FastswapRouter01: INVALID PATH");
+        amounts=FastswapLibrary.getAmountsIn(factory,amountOut,path);
+        require(amounts[0]<=msg.value,"FastswapRouter01: EXCESSIVE INPUT AMOUNT");
+        IWETH(WETH).deposit{value:amounts[0]}();
+        assert(
+            IWETH(WETH).transfer(FastswapLibrary.pairFor(factory, path[0], path[1]),amounts[0])
+        );
+        _swap(amounts,path,to);
+        if(msg.value>amounts[0]){
+            TransferHelper.safeTransferETH(msg.sender,msg.value-amounts[0]);
+        }
+    }
 
 }
