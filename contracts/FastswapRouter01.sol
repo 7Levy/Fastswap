@@ -178,11 +178,19 @@ contract FastswapRouter01 is IFastswapRouter01 {
         //返还流动性代币Fast
         IFastswapPair(pair).transferFrom(msg.sender, pair, liquidity);
         //销毁Fast代币，计算TokenA和TokenB的数量
-        (uint256 amount0,uint256 amount1)=IFastswapPair(pair).burn(to);
-        (address token0,)=FastswapLibrary.sortTokens(tokenA, tokenB);
-        (amountA,amountB)=tokenA==token0?(amountA,amountB):(amountB,amountA);
-        require(amountA>=amountAMin,"FastswapRouter01: INSUFFICIENT A AMOUNT");
-        require(amountB>=amountBMin,"FastswapRouter01: INSUFFICIENT B AMOUNT");
+        (uint256 amount0, uint256 amount1) = IFastswapPair(pair).burn(to);
+        (address token0, ) = FastswapLibrary.sortTokens(tokenA, tokenB);
+        (amountA, amountB) = tokenA == token0
+            ? (amountA, amountB)
+            : (amountB, amountA);
+        require(
+            amountA >= amountAMin,
+            "FastswapRouter01: INSUFFICIENT A AMOUNT"
+        );
+        require(
+            amountB >= amountBMin,
+            "FastswapRouter01: INSUFFICIENT B AMOUNT"
+        );
     }
 
     /**
@@ -196,9 +204,9 @@ contract FastswapRouter01 is IFastswapRouter01 {
         uint256 amountETHMin,
         address to,
         uint256 deadline
-    ) public ensure(deadline)returns (uint256 amountToken, uint256 amountETH){
+    ) public ensure(deadline) returns (uint256 amountToken, uint256 amountETH) {
         //销毁流动性
-        (amountToken,amountETH)=removeLiquidiy(
+        (amountToken, amountETH) = removeLiquidiy(
             toekn,
             WETH,
             liquidity,
@@ -207,9 +215,9 @@ contract FastswapRouter01 is IFastswapRouter01 {
             address(this),
             deadline
         );
-        TransferHelper.safeTransfer(token,to,amountToken);
+        TransferHelper.safeTransfer(token, to, amountToken);
         IWETH(WETH).withdraw(amountETH);
-        TransferHelper.safeTransferETH(to,amountETH);
+        TransferHelper.safeTransferETH(to, amountETH);
     }
 
     /**
@@ -228,13 +236,21 @@ contract FastswapRouter01 is IFastswapRouter01 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (uint256 amountA, uint256 amountB){
+    ) external returns (uint256 amountA, uint256 amountB) {
         //计算TokenA，TokenB的CREATE2地址
         address pair = FastswapLibrary.pairFor(factory, tokenA, tokenB);
         //如果批准全部，value等于uint256的最大值
-        uint256 value = approveMax ? type(uint256).max:liquidity;
+        uint256 value = approveMax ? type(uint256).max : liquidity;
         //签名授权，调用者、当前合约地址、值、截止时间、v、r、s
-        IFastswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        IFastswapPair(pair).permit(
+            msg.sender,
+            address(this),
+            value,
+            deadline,
+            v,
+            r,
+            s
+        );
         (amountA, amountB) = removeLiquidity(
             tokenA,
             tokenB,
@@ -261,8 +277,50 @@ contract FastswapRouter01 is IFastswapRouter01 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (uint256 amountToken, uint256 amountETH){
-        
-    }   
+    ) external returns (uint256 amountToken, uint256 amountETH) {
+        address pair = FastswapLibrary.pairFor(factory, token, WETH);
+        uint256 value = approveMax ? type(uint256).max : liquidity;
+        IFastswapPair(pair).permit(
+            msg.sender,
+            address(this),
+            value,
+            deadline,
+            v,
+            r,
+            s
+        );
+        (amountToken, amountETH) = removeLiquidityETH(
+            token,
+            liquidity,
+            amountTokenMin,
+            amountETHMin,
+            to,
+            deadline
+        );
+    }
 
+
+    /**
+     * @dev 交换的私有方法
+     */
+    function _swap(uin256[] memory amounts,address[] memory path,address _to)private{
+        for (uin256 i;i<path.length-1;i++){
+            //输入地址，输出地址
+            (address input,address output)=(path[i],path[i+1]);
+            //地址排序
+            (address token0,)=FastswapLibrary.sortTokens(input, output);
+            //输出数额
+            uin256 amountOut = amounts[i+1];
+            
+            (uint256 amount0Out,uint256 amount1Out)=input==token0?(uin256(0),amountOut):(amountOut,uint256(0));
+
+            //计算to地址
+            address to=i<path.length-2?FastswapLibrary.pairFor(factory, output, path[i+2]):_to;
+
+            //交换代币
+            IFastswapPair(FastswapLibrary.pairFor(factory, input, output)).swap(amount0Out,amount1Out,to,new bytes(0));
+            
+        }
+    }
+    
 }
