@@ -368,8 +368,11 @@ contract FastswapRouter01 is IFastswapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts){
-
+    ) external ensure(deadline) returns (uint256[] memory amounts){
+        amounts = FastswapLibrary.getAmountsIn(factory,amountOut,path);
+        require(amounts[0]<=amountInMax,"FastswapRouter01: EXCESSIVE INPUT AMOUNT");
+        TransferHelper.safeTransferFrom(path[0],msg.sender,FastswapLibrary.pairFor(factory, path[0], path[1]),amounts[0]);
+        _swap(amounts,path,to);
     }
 
 }
