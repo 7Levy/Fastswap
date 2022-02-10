@@ -375,4 +375,44 @@ contract FastswapRouter01 is IFastswapRouter01 {
         _swap(amounts,path,to);
     }
 
+
+    /**
+     * @dev ETH-ERC20
+     */
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable ensure(deadline) returns (uint256[] memory amounts){
+        //确保第一个代币为WETH
+        require(path[0]==WETH,"FastswapRouter01: INVALID PATH");
+        amounts = FastswapLibrary.getAmountsOut(factory, msg.value, path);
+        require(amounts[amounts.length-1]>=amountOutMin,"FastswapRouter01,INSUFFICIENT OUTPUT AMOUNT");
+        IWETH(WETH).deposit{value:amounts[0]}();
+        assert(IWETH(WETH).transfer(FastswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        _swap(amounts, path, to);
+    }
+
+    /**
+     * @dev ERC20-ETH
+     */
+    function swapTokensForExactETH(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external ensure(deadline) returns (uint256[] memory amounts){
+        require(path[path.length-1]==WETH,"FastswapRouter01: INVALID PATH");
+        amounts=FastswapLibrary.getAmountsIn(factory,amountOut,path);
+        require(amounts[0]<=amountInMax,"FastswapRouter01: EXCESSIVE INPUT AMOUNT");
+        TransferHelper.safeTransferFrom(path[0],msg.sender,FastswapLibrary.pairFor(factory, path[0], path[1]),amounts[0]);
+        _swap(amounts, path, address(this));
+        IWETH(WETH).withdraw(amounts[amounts.length-1]);
+        TransferHelper.safeTransferETH(to,amounts[amounts.length-1]);
+    }
+
+
+
 }
