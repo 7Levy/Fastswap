@@ -344,11 +344,14 @@ contract FastswapRouter01 is IFastswapRouter01 {
         address to,
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
+        //获取数额路径
         amounts = FastswapLibrary.getAmountsOut(factory, amountIn, path);
+        //需要兑换的代币至少大于最小值
         require(
             amounts[amounts.length - 1] >= amountOutMin,
             "FastswapRouter01: INSUFFICIENT OUTPUT AMOUNTS"
         );
+        //将代币发送给交易链1和2的配对合约
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,

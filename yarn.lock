@@ -640,6 +640,11 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
+"@openzeppelin/contracts-upgradeable@^4.5.2":
+  "integrity" "sha512-xgWZYaPlrEOQo3cBj97Ufiuv79SPd8Brh4GcFYhPgb6WvAq4ppz8dWKL6h+jLAK01rUqMRp/TS9AdXgAeNvCLA=="
+  "resolved" "https://registry.npmmirror.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.2.tgz"
+  "version" "4.5.2"
+
 "@openzeppelin/contracts@^4.4.1":
   "integrity" "sha512-o+pHCf/yMLSlV5MkDQEzEQL402i6SoRnktru+0rdSxVEFZcTzzGhZCAtZjUFyKGazMSv1TilzMg+RbED1N8XHQ=="
   "resolved" "https://registry.npmmirror.com/@openzeppelin/contracts/download/@openzeppelin/contracts-4.4.1.tgz"

@@ -56,7 +56,7 @@ contract FastswapFactory is IFactory {
             onepair[token0][token1] == address(0),
             "Fastswap: PARI ALREADY EXISTS"
         );
-
+        
         bytes memory bytecode = type(FastswapPair).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
 
